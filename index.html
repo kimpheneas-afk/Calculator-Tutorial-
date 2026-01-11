@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Scientific Calculator Pro</title>
+
+<style>
+:root {
+    --bg:#121212; --card:#1e1e1e; --text:#fff; --btn:#333; --accent:#ff9500;
+}
+.light {
+    --bg:#f4f4f4; --card:#fff; --text:#000; --btn:#ddd;
+}
+body {
+    margin:0; height:100vh;
+    background:var(--bg); color:var(--text);
+    display:flex; justify-content:center; align-items:center;
+    font-family:Arial,sans-serif;
+}
+.app {
+    width:380px; background:var(--card);
+    border-radius:14px; padding:15px;
+}
+nav {
+    display:grid; grid-template-columns:repeat(4,1fr);
+    gap:6px; margin-bottom:10px;
+}
+nav button {
+    padding:8px; border:none; border-radius:6px;
+    background:var(--btn); color:var(--text);
+}
+.screen { display:none; }
+.screen.active { display:block; }
+
+input, select {
+    width:100%; padding:10px; font-size:16px;
+    margin-bottom:8px;
+}
+.grid {
+    display:grid; grid-template-columns:repeat(4,1fr);
+    gap:8px;
+}
+.calc {
+    padding:14px; font-size:16px;
+    background:var(--btn); color:var(--text);
+    border:none; border-radius:6px;
+}
+.operator { background:var(--accent); }
+.equal { background:#34c759; grid-column:span 4; }
+
+.history {
+    max-height:220px; overflow-y:auto; font-size:14px;
+}
+.history div {
+    padding:6px; border-bottom:1px solid #555;
+}
+.toggle {
+    text-align:center; margin-bottom:8px;
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<nav>
+    <button onclick="show('calc')">Calc</button>
+    <button onclick="show('history')">History</button>
+    <button onclick="show('convert')">Convert</button>
+    <button onclick="theme()">Theme</button>
+</nav>
+
+<!-- CALCULATOR -->
+<div id="calc" class="screen active">
+    <div class="toggle">
+        <button class="calc" onclick="toggleMode()">Mode: <span id="mode">DEG</span></button>
+    </div>
+    <input id="display" readonly>
+
+    <div class="grid">
+        <button class="calc" onclick="clr()">C</button>
+        <button class="calc" onclick="del()">DEL</button>
+        <button class="calc" onclick="add('(')">(</button>
+        <button class="calc" onclick="add(')')">)</button>
+
+        <button class="calc" onclick="add('sin(')">sin</button>
+        <button class="calc" onclick="add('cos(')">cos</button>
+        <button class="calc" onclick="add('tan(')">tan</button>
+        <button class="calc" onclick="add('Math.sqrt(')">√</button>
+
+        <button class="calc" onclick="add('7')">7</button>
+        <button class="calc" onclick="add('8')">8</button>
+        <button class="calc" onclick="add('9')">9</button>
+        <button class="calc operator" onclick="add('/')">÷</button>
+
+        <button class="calc" onclick="add('4')">4</button>
+        <button class="calc" onclick="add('5')">5</button>
+        <button class="calc" onclick="add('6')">6</button>
+        <button class="calc operator" onclick="add('*')">×</button>
+
+        <button class="calc" onclick="add('1')">1</button>
+        <button class="calc" onclick="add('2')">2</button>
+        <button class="calc" onclick="add('3')">3</button>
+        <button class="calc operator" onclick="add('-')">−</button>
+
+        <button class="calc" onclick="add('0')">0</button>
+        <button class="calc" onclick="add('.')">.</button>
+        <button class="calc" onclick="add('Math.PI')">π</button>
+        <button class="calc operator" onclick="add('+')">+</button>
+
+        <button class="calc equal" onclick="calc()">=</button>
+    </div>
+</div>
+
+<!-- HISTORY -->
+<div id="history" class="screen">
+    <div class="history" id="historyList"></div>
+    <button class="calc" onclick="clearHistory()">Clear History</button>
+</div>
+
+<!-- CONVERTER -->
+<div id="convert" class="screen">
+    <input id="v" placeholder="Enter value">
+    <select id="type">
+        <optgroup label="Length">
+            <option value="m-km">Meters → Kilometers</option>
+            <option value="km-m">Kilometers → Meters</option>
+        </optgroup>
+        <optgroup label="Weight">
+            <option value="kg-g">Kg → Grams</option>
+            <option value="g-kg">Grams → Kg</option>
+        </optgroup>
+        <optgroup label="Speed">
+            <option value="kmh-ms">Km/h → m/s</option>
+            <option value="ms-kmh">m/s → Km/h</option>
+        </optgroup>
+        <optgroup label="Temperature">
+            <option value="c-f">Celsius → Fahrenheit</option>
+            <option value="f-c">Fahrenheit → Celsius</option>
+        </optgroup>
+    </select>
+    <button class="calc equal" onclick="convert()">Convert</button>
+    <input id="out" readonly>
+</div>
+
+</div>
+
+<script>
+let deg = true;
+const d = document.getElementById("display");
+const h = document.getElementById("historyList");
+
+function show(id){
+    document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+}
+
+function theme(){ document.body.classList.toggle("light"); }
+function add(v){ d.value+=v; }
+function clr(){ d.value=""; }
+function del(){ d.value=d.value.slice(0,-1); }
+
+function toggleMode(){
+    deg=!deg;
+    document.getElementById("mode").innerText = deg?"DEG":"RAD";
+}
+
+function trig(fn,x){
+    return deg ? Math[fn](x*Math.PI/180) : Math[fn](x);
+}
+
+function calc(){
+    try{
+        let exp=d.value
+            .replace(/sin\(/g,"trig('sin',")
+            .replace(/cos\(/g,"trig('cos',")
+            .replace(/tan\(/g,"trig('tan',");
+        let r=eval(exp);
+        save(`${d.value} = ${r}`);
+        d.value=r;
+    }catch{ d.value="Error"; }
+}
+
+function save(t){
+    let hist=JSON.parse(localStorage.getItem("hist")||"[]");
+    hist.push(t);
+    localStorage.setItem("hist",JSON.stringify(hist));
+    load();
+}
+
+function load(){
+    h.innerHTML="";
+    (JSON.parse(localStorage.getItem("hist")||"[]"))
+    .forEach(i=>h.innerHTML+=`<div>${i}</div>`);
+}
+load();
+
+function clearHistory(){
+    localStorage.removeItem("hist");
+    load();
+}
+
+function convert(){
+    let v=parseFloat(document.getElementById("v").value);
+    let t=document.getElementById("type").value;
+    let r=0;
+    if(t=="m-km") r=v/1000;
+    if(t=="km-m") r=v*1000;
+    if(t=="kg-g") r=v*1000;
+    if(t=="g-kg") r=v/1000;
+    if(t=="kmh-ms") r=v/3.6;
+    if(t=="ms-kmh") r=v*3.6;
+    if(t=="c-f") r=(v*9/5)+32;
+    if(t=="f-c") r=(v-32)*5/9;
+    document.getElementById("out").value=r;
+}
+</script>
+
+</body>
+          </html>
